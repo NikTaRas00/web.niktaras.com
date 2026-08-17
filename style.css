@@ -32,24 +32,9 @@
   
   /* 6. Smooth interactive transition */
   transition: all 0.2s ease-in-out;
+  
+  width: 500px;
+  height: 200px;
+  
 }
 
-/* 7. Hover & Focus States (Crucial for UX) */
-.btn-modern:hover {
-  background-color: #1d4ed8; /* Darken slightly on hover */
-  transform: translateY(-1px); /* Subtle lifting motion */
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
-
-/* 8. Active Click State */
-.btn-modern:active {
-  background-color: #1e40af;
-  transform: translateY(0); /* Pushes down to simulate a real press */
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-}
-
-/* 9. Accessible Keyboard Focus Style */
-.btn-modern:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
