@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M4A Loop and Autoplay</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+        }
+        .player-container {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        p {
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="player-container">
+    <h2>M4A Audio Loop</h2>
+    <!-- The 'loop' attribute handles infinite playback -->
+    <!-- The 'controls' attribute lets users pause if needed -->
+    <audio id="myAudio" loop controls>
+        <source src="ElaReArt.m4a" type="audio/mp4">
+        Your browser does not support the audio element.
+    </audio>
+    <p id="status">Click anywhere on the screen if the audio doesn't start automatically.</p>
+</div>
+
+<script>
+    const audio = document.getElementById('myAudio');
+    const statusText = document.getElementById('status');
+
+    // 1. Try to play immediately (Works if browser has cached user preference)
+    const playAttempt = audio.play();
+
+    if (playAttempt !== undefined) {
+        playAttempt.catch(error => {
+            console.log("Autoplay blocked by browser. Awaiting user interaction...");
+            
+            // 2. Fallback: Play the sound the split second the user clicks the page
+            document.addEventListener('click', () => {
+                audio.play();
+                statusText.textContent = "Audio playing on a continuous loop.";
+            }, { once: true }); // { once: true } ensures this event listener runs only once
+        });
+    }
+</script>
+
+</body>
+</html>
