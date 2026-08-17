@@ -3,14 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Animated Markdown / HTML Viewer</title>
+  <title>File Viewer Switcher</title>
   <style>
     :root {
       --bg-gradient: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-      --card-bg: rgba(255, 255, 255, 0.15);
-      --text-color: #ffffff;
-      --btn-active: #ffffff;
-      --btn-active-text: #1a1a2e;
     }
 
     * {
@@ -28,7 +24,7 @@
       background: var(--bg-gradient);
       background-size: 400% 400%;
       animation: gradientBG 12s ease infinite;
-      color: var(--text-color);
+      color: #ffffff;
       padding: 20px;
     }
 
@@ -39,14 +35,13 @@
     }
 
     .container {
-      width: 100%;
-      max-width: 700px;
-      background: var(--card-bg);
+      background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 20px;
-      padding: 30px;
+      padding: 40px;
+      text-align: center;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
       animation: float 6s ease-in-out infinite;
     }
@@ -56,165 +51,51 @@
       50% { transform: translateY(-10px); }
     }
 
-    .header {
-      text-align: center;
+    h1 {
       margin-bottom: 25px;
-    }
-
-    .header h1 {
-      font-size: 2rem;
-      margin-bottom: 15px;
+      font-size: 1.8rem;
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
 
-    .toggle-group {
-      display: inline-flex;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 5px;
+    .btn-group {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      display: inline-block;
+      text-decoration: none;
+      color: #1a1a2e;
+      background: #ffffff;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: 700;
       border-radius: 30px;
-      position: relative;
+      box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .btn {
-      border: none;
-      background: transparent;
-      color: var(--text-color);
-      padding: 10px 24px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      border-radius: 25px;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      z-index: 1;
+    .nav-btn:hover {
+      transform: scale(1.08) translateY(-3px);
+      box-shadow: 0 10px 25px rgba(255, 255, 255, 0.5);
     }
 
-    .btn:hover {
-      transform: scale(1.05);
-    }
-
-    .btn.active {
-      background: var(--btn-active);
-      color: var(--btn-active-text);
-      box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5); }
-      70% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-    }
-
-    .viewer-card {
-      position: relative;
-      background: rgba(0, 0, 0, 0.25);
-      border-radius: 12px;
-      padding: 20px;
-      min-height: 220px;
-      overflow: hidden;
-    }
-
-    .content-panel {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      right: 20px;
-      opacity: 0;
-      transform: translateY(20px) scale(0.98);
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: none;
-    }
-
-    .content-panel.active {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-      position: relative;
-      top: 0;
-      left: 0;
-      right: 0;
-    }
-
-    pre {
-      white-space: pre-wrap;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      color: #7dd3fc;
-    }
-
-    .rendered-html h2 {
-      margin-bottom: 10px;
-      color: #fef08a;
-    }
-
-    .rendered-html p {
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
-
-    .rendered-html ul {
-      margin-left: 20px;
+    .nav-btn:active {
+      transform: scale(0.98);
     }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <div class="header">
-      <h1>Dynamic View Switcher</h1>
-      <div class="toggle-group">
-        <button class="btn active" id="btn-md" onclick="switchView('md')">View Markdown</button>
-        <button class="btn" id="btn-html" onclick="switchView('html')">View HTML</button>
-      </div>
-    </div>
-
-    <div class="viewer-card">
-      <!-- Markdown View Panel -->
-      <div class="content-panel active" id="panel-md">
-        <pre># Hello World
-
-This is a **live preview** of Markdown text.
-
-- Fast and reactive
-- Dynamic CSS transitions
-- Interactive toggle buttons</pre>
-      </div>
-
-      <!-- HTML View Panel -->
-      <div class="content-panel" id="panel-html">
-        <div class="rendered-html">
-          <h2>Hello World</h2>
-          <p>This is a <strong>live preview</strong> of rendered HTML content.</p>
-          <ul>
-            <li>Fast and reactive</li>
-            <li>Dynamic CSS transitions</li>
-            <li>Interactive toggle buttons</li>
-          </ul>
-        </div>
-      </div>
+    <h1>Select File to View</h1>
+    <div class="btn-group">
+      <a href="FILE.md" class="nav-btn">View FILE.md</a>
+      <a href="FILE.html" class="nav-btn">View FILE.html</a>
     </div>
   </div>
 
-  <script>
-    function switchView(type) {
-      const btnMd = document.getElementById('btn-md');
-      const btnHtml = document.getElementById('btn-html');
-      const panelMd = document.getElementById('panel-md');
-      const panelHtml = document.getElementById('panel-html');
-
-      if (type === 'md') {
-        btnMd.classList.add('active');
-        btnHtml.classList.remove('active');
-        panelHtml.classList.remove('active');
-        setTimeout(() => panelMd.classList.add('active'), 150);
-      } else {
-        btnHtml.classList.add('active');
-        btnMd.classList.remove('active');
-        panelMd.classList.remove('active');
-        setTimeout(() => panelHtml.classList.add('active'), 150);
-      }
-    }
-  </script>
 </body>
 </html>
