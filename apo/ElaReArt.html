@@ -44,21 +44,28 @@
     const audio = document.getElementById('myAudio');
     const statusText = document.getElementById('status');
 
-    // 1. Try to play immediately (Works if browser has cached user preference)
-    const playAttempt = audio.play();
+    // Remove reliance on native loop and manually force a restart
+    audio.removeAttribute('loop'); 
 
+    // Explicitly listen for the 'ended' event
+    audio.addEventListener('ended', function() {
+        console.log("Audio ended. Forcing manual loop restart.");
+        this.currentTime = 0; // Move playback tracker back to the start
+        this.play().catch(err => console.log("Loop restart blocked:", err));
+    }, false);
+
+    // Initial activation script
+    const playAttempt = audio.play();
     if (playAttempt !== undefined) {
         playAttempt.catch(error => {
-            console.log("Autoplay blocked by browser. Awaiting user interaction...");
-            
-            // 2. Fallback: Play the sound the split second the user clicks the page
             document.addEventListener('click', () => {
                 audio.play();
-                statusText.textContent = "Audio playing on a continuous loop.";
-            }, { once: true }); // { once: true } ensures this event listener runs only once
+                statusText.textContent = "Audio playing and forcing a manual loop via JavaScript.";
+            }, { once: true });
         });
     }
 </script>
+
 
 </body>
 </html>
