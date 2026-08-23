@@ -6,27 +6,22 @@
 <title>Chat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink:        #14161c;
-    --ink-soft:   #4a4f5c;
-    --paper:      #e8e4dc;
+    --ink: #14161c;
+    --ink-soft: #4a4f5c;
+    --paper: #e8e4dc;
     --paper-warm: #f2efe9;
-    --rule:       #c9c3b8;
-    --mark:       #2f5d50;
-    --alert:      #8c3b2e;
-
+    --rule: #c9c3b8;
+    --mark: #2f5d50;
+    --alert: #8c3b2e;
     --serif: "Newsreader", Georgia, serif;
-    --mono:  "IBM Plex Mono", ui-monospace, monospace;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
   }
 
   * { box-sizing: border-box; }
-
-  html, body {
-    margin: 0;
-    height: 100%;
-  }
+  html, body { margin: 0; height: 100%; }
 
   body {
     background: var(--paper);
@@ -50,8 +45,6 @@
     border-right: 1px solid var(--rule);
   }
 
-  /* ---------------------------------------------------------- header --- */
-
   header {
     padding: 20px 24px 14px;
     border-bottom: 1px solid var(--rule);
@@ -61,12 +54,7 @@
     gap: 16px;
   }
 
-  h1 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-  }
+  h1 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
 
   .meta {
     font-family: var(--mono);
@@ -90,8 +78,6 @@
   }
   .clear:hover { color: var(--ink); border-color: var(--ink); }
 
-  /* --------------------------------------------------------- transcript --- */
-
   #transcript {
     flex: 1;
     overflow-y: auto;
@@ -110,7 +96,7 @@
 
   @keyframes rise {
     from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: none; }
+    to { opacity: 1; transform: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -131,18 +117,10 @@
   .turn[data-role="error"] .who { color: var(--alert); }
   .turn[data-role="error"] .body { color: var(--alert); }
 
-  .body {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
+  .body { white-space: pre-wrap; overflow-wrap: anywhere; }
 
-  .empty {
-    padding: 48px 0;
-    color: var(--ink-soft);
-    font-style: italic;
-  }
+  .empty { padding: 48px 0; color: var(--ink-soft); font-style: italic; }
 
-  /* Three dots while waiting. */
   .waiting span {
     display: inline-block;
     width: 5px; height: 5px;
@@ -156,10 +134,8 @@
 
   @keyframes pulse {
     0%, 60%, 100% { opacity: 0.25; }
-    30%           { opacity: 1; }
+    30% { opacity: 1; }
   }
-
-  /* -------------------------------------------------------- composer --- */
 
   form {
     border-top: 1px solid var(--rule);
@@ -200,10 +176,7 @@
   button[type="submit"]:hover:not(:disabled) { opacity: 0.85; }
   button[type="submit"]:disabled { opacity: 0.3; cursor: default; }
 
-  :focus-visible {
-    outline: 2px solid var(--mark);
-    outline-offset: 2px;
-  }
+  :focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
 
   @media (max-width: 560px) {
     body { font-size: 16px; }
@@ -238,22 +211,22 @@
 (function () {
   "use strict";
 
-  var ENDPOINT = "api/chat.php";
+  var ENDPOINT = "/ai/api/chat.php";
 
   // Change this to give the assistant a personality or a job.
   var SYSTEM_PROMPT = "";
 
   var transcript = document.getElementById("transcript");
-  var form       = document.getElementById("composer");
-  var input      = document.getElementById("input");
-  var sendBtn    = document.getElementById("send");
-  var clearBtn   = document.getElementById("clear");
+  var form = document.getElementById("composer");
+  var input = document.getElementById("input");
+  var sendBtn = document.getElementById("send");
+  var clearBtn = document.getElementById("clear");
 
-  var history = [];   // [{ role: "user" | "model", text: "..." }]
-  var busy    = false;
+  var history = [];
+  var busy = false;
 
   function labelFor(role) {
-    if (role === "user")  return "You";
+    if (role === "user") return "You";
     if (role === "model") return "Gemini";
     return "Error";
   }
@@ -326,7 +299,7 @@
       slot.textContent = err.message;
       slot.parentElement.setAttribute("data-role", "error");
       slot.parentElement.querySelector(".who").textContent = "Error";
-      history.pop();   // drop the unanswered turn so retry works cleanly
+      history.pop();
     } finally {
       setBusy(false);
       transcript.scrollTop = transcript.scrollHeight;
@@ -344,8 +317,6 @@
     send(text);
   });
 
-  // Enter sends, Shift+Enter makes a new line — but only on pointer devices,
-  // where an on-screen keyboard isn't in the way.
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer: fine)").matches) {
       e.preventDefault();
