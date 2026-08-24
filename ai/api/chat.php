@@ -117,7 +117,8 @@ if ($response === false) {
 $decoded = json_decode($response, true);
 
 if ($status === 429) {
-    fail(429, 'Rate limit reached. Free tier allows 15 requests per minute — wait a moment.');
+    $detail = $decoded['error']['message'] ?? 'Unknown error.';
+    fail(429, 'Rate limit reached: ' . $detail);
 }
 
 if ($status !== 200) {
