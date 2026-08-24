@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-const MODEL = 'gemini-3.1-pro';
+const MODEL = 'gemini-3.5-flash-lite';
 const MAX_MESSAGES = 40;
 const MAX_CHARS = 4000;
 
