@@ -72,6 +72,9 @@ if ($contents === []) {
 
 $body = [
     'contents' => $contents,
+    'tools' => [
+        ['google_search' => new stdClass()],
+    ],
     'generationConfig' => [
         'temperature' => 0.8,
         'maxOutputTokens' => 2048,
