@@ -215,7 +215,7 @@ if ($functionCallPart !== null && $searchEnabled) {
 
     $body['contents'][] = ['role' => 'model', 'parts' => [$functionCallPart]];
     $body['contents'][] = [
-        'role' => 'function',
+        'role' => 'user',
         'parts' => [[
             'functionResponse' => [
                 'name' => 'web_search',
