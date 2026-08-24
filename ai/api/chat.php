@@ -72,6 +72,9 @@ if ($contents === []) {
 
 $body = [
     'contents' => $contents,
+    'tools' => [
+        ['google_search' => new stdClass()],
+    ],
     'generationConfig' => [
         'temperature' => 0.8,
         'maxOutputTokens' => 2048,
@@ -130,4 +133,21 @@ if ($reply === '') {
     fail(502, 'The model returned no text (finish reason: ' . $reason . ').');
 }
 
-echo json_encode(['reply' => $reply], JSON_UNESCAPED_UNICODE);
+$sources = [];
+$seenUris = [];
+foreach ($candidate['groundingMetadata']['groundingChunks'] ?? [] as $chunk) {
+    $uri = $chunk['web']['uri'] ?? '';
+    if ($uri === '' || isset($seenUris[$uri])) {
+        continue;
+    }
+    $seenUris[$uri] = true;
+    $sources[] = ['title' => $chunk['web']['title'] ?? $uri, 'uri' => $uri];
+}
+$sources = array_slice($sources, 0, 6);
+
+$result = ['reply' => $reply];
+if ($sources !== []) {
+    $result['sources'] = $sources;
+}
+
+echo json_encode($result, JSON_UNESCAPED_UNICODE);
