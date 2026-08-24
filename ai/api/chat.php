@@ -78,7 +78,7 @@ $body = [
     ],
 ];
 
-$systemPrompt = trim((string)($payload['system'] ?? ''));
+$systemPrompt = load_system_prompt();
 if ($systemPrompt !== '') {
     $body['systemInstruction'] = [
         'parts' => [['text' => mb_substr($systemPrompt, 0, MAX_CHARS)]],
