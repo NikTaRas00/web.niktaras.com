@@ -6,16 +6,12 @@ header('Content-Type: application/json; charset=utf-8');
 const MODEL = 'gemini-3.5-flash-lite';
 const MAX_MESSAGES = 40;
 const MAX_CHARS = 4000;
+const SEARCH_RESULT_COUNT = 5;
 
-function load_api_key(): ?string
+function load_config(): array
 {
     $path = __DIR__ . '/config.php';
-    if (!is_readable($path)) {
-        return null;
-    }
-    $config = require $path;
-    $key = $config['GEMINI_API_KEY'] ?? '';
-    return $key !== '' ? trim($key) : null;
+    return is_readable($path) ? (require $path) : [];
 }
 
 function load_system_prompt(): string
@@ -35,6 +31,88 @@ function fail(int $status, string $message): never
     exit;
 }
 
+function call_gemini(array $body, string $apiKey): array
+{
+    $url = sprintf(
+        'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent',
+        MODEL
+    );
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 60,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'x-goog-api-key: ' . $apiKey,
+        ],
+        CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE),
+    ]);
+
+    $response = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
+
+    if ($response === false) {
+        fail(502, 'Could not reach Gemini: ' . $curlErr);
+    }
+
+    $decoded = json_decode($response, true);
+
+    if ($status === 429) {
+        $detail = $decoded['error']['message'] ?? 'Unknown error.';
+        fail(429, 'Rate limit reached: ' . $detail);
+    }
+
+    if ($status !== 200) {
+        $detail = $decoded['error']['message'] ?? 'Unknown error.';
+        fail($status ?: 502, 'Gemini returned an error: ' . $detail);
+    }
+
+    return $decoded;
+}
+
+// Free, no-billing web search via Google's Custom Search JSON API
+// (100 free queries/day). Returns [] on any failure or missing config.
+function web_search(string $query, string $apiKey, string $searchEngineId): array
+{
+    $url = 'https://www.googleapis.com/customsearch/v1?' . http_build_query([
+        'key' => $apiKey,
+        'cx' => $searchEngineId,
+        'q' => $query,
+        'num' => SEARCH_RESULT_COUNT,
+    ]);
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 15,
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    if ($response === false) {
+        return [];
+    }
+
+    $decoded = json_decode($response, true);
+    $results = [];
+    foreach ($decoded['items'] ?? [] as $item) {
+        $link = $item['link'] ?? '';
+        if ($link === '') {
+            continue;
+        }
+        $results[] = [
+            'title' => $item['title'] ?? $link,
+            'link' => $link,
+            'snippet' => $item['snippet'] ?? '',
+        ];
+    }
+    return $results;
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     fail(405, 'Send a POST request.');
 }
@@ -49,10 +127,15 @@ if (!is_array($payload) || !isset($payload['messages']) || !is_array($payload['m
     fail(400, 'Request needs a "messages" array.');
 }
 
-$apiKey = load_api_key();
-if ($apiKey === null) {
+$config = load_config();
+$apiKey = trim((string)($config['GEMINI_API_KEY'] ?? ''));
+if ($apiKey === '') {
     fail(500, 'No API key on the server. Check api/config.php.');
 }
+
+$cseApiKey = trim((string)($config['GOOGLE_CSE_API_KEY'] ?? ''));
+$cseId = trim((string)($config['GOOGLE_CSE_ID'] ?? ''));
+$searchEnabled = $cseApiKey !== '' && $cseId !== '';
 
 $messages = array_slice($payload['messages'], -MAX_MESSAGES);
 $contents = [];
@@ -72,14 +155,27 @@ if ($contents === []) {
 
 $body = [
     'contents' => $contents,
-    'tools' => [
-        ['google_search' => new stdClass()],
-    ],
     'generationConfig' => [
         'temperature' => 0.8,
         'maxOutputTokens' => 2048,
     ],
 ];
+
+if ($searchEnabled) {
+    $body['tools'] = [[
+        'functionDeclarations' => [[
+            'name' => 'web_search',
+            'description' => 'Search the live web for current information: news, prices, weather, recent events, or anything that may have changed since training. Use it whenever the answer depends on up-to-date facts.',
+            'parameters' => [
+                'type' => 'object',
+                'properties' => [
+                    'query' => ['type' => 'string', 'description' => 'The search query.'],
+                ],
+                'required' => ['query'],
+            ],
+        ]],
+    ]];
+}
 
 $systemPrompt = load_system_prompt();
 if ($systemPrompt !== '') {
@@ -88,63 +184,54 @@ if ($systemPrompt !== '') {
     ];
 }
 
-$url = sprintf(
-    'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent',
-    MODEL
-);
-
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 60,
-    CURLOPT_HTTPHEADER => [
-        'Content-Type: application/json',
-        'x-goog-api-key: ' . $apiKey,
-    ],
-    CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE),
-]);
-
-$response = curl_exec($ch);
-$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlErr = curl_error($ch);
-curl_close($ch);
-
-if ($response === false) {
-    fail(502, 'Could not reach Gemini: ' . $curlErr);
-}
-
-$decoded = json_decode($response, true);
-
-if ($status === 429) {
-    $detail = $decoded['error']['message'] ?? 'Unknown error.';
-    fail(429, 'Rate limit reached: ' . $detail);
-}
-
-if ($status !== 200) {
-    $detail = $decoded['error']['message'] ?? 'Unknown error.';
-    fail($status ?: 502, 'Gemini returned an error: ' . $detail);
-}
-
+$decoded = call_gemini($body, $apiKey);
 $candidate = $decoded['candidates'][0] ?? null;
+$parts = $candidate['content']['parts'] ?? [];
+
+$sources = [];
+
+$functionCallPart = null;
+foreach ($parts as $part) {
+    if (isset($part['functionCall']['name']) && $part['functionCall']['name'] === 'web_search') {
+        $functionCallPart = $part;
+        break;
+    }
+}
+
+if ($functionCallPart !== null && $searchEnabled) {
+    $query = trim((string)($functionCallPart['functionCall']['args']['query'] ?? ''));
+    $results = $query !== '' ? web_search($query, $cseApiKey, $cseId) : [];
+
+    $seenUris = [];
+    foreach ($results as $r) {
+        if (isset($seenUris[$r['link']])) {
+            continue;
+        }
+        $seenUris[$r['link']] = true;
+        $sources[] = ['title' => $r['title'], 'uri' => $r['link']];
+    }
+
+    $body['contents'][] = ['role' => 'model', 'parts' => [$functionCallPart]];
+    $body['contents'][] = [
+        'role' => 'function',
+        'parts' => [[
+            'functionResponse' => [
+                'name' => 'web_search',
+                'response' => ['results' => $results],
+            ],
+        ]],
+    ];
+
+    $decoded = call_gemini($body, $apiKey);
+    $candidate = $decoded['candidates'][0] ?? null;
+}
+
 $reply = $candidate['content']['parts'][0]['text'] ?? '';
 
 if ($reply === '') {
     $reason = $candidate['finishReason'] ?? 'unknown';
     fail(502, 'The model returned no text (finish reason: ' . $reason . ').');
 }
-
-$sources = [];
-$seenUris = [];
-foreach ($candidate['groundingMetadata']['groundingChunks'] ?? [] as $chunk) {
-    $uri = $chunk['web']['uri'] ?? '';
-    if ($uri === '' || isset($seenUris[$uri])) {
-        continue;
-    }
-    $seenUris[$uri] = true;
-    $sources[] = ['title' => $chunk['web']['title'] ?? $uri, 'uri' => $uri];
-}
-$sources = array_slice($sources, 0, 6);
 
 $result = ['reply' => $reply];
 if ($sources !== []) {

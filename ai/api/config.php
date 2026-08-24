@@ -21,8 +21,21 @@ function niktaras_load_dotenv(string $path): array
     return $vars;
 }
 
+function niktaras_env(string $name, array $dotenv): string
+{
+    $value = getenv($name);
+    if ($value !== false && $value !== '') {
+        return trim($value);
+    }
+    return trim((string)($dotenv[$name] ?? ''));
+}
+
 $dotenv = niktaras_load_dotenv(__DIR__ . '/.env');
 
 return [
-    'GEMINI_API_KEY' => getenv('GEMINI_API_KEY') ?: ($dotenv['GEMINI_API_KEY'] ?? ''),
+    'GEMINI_API_KEY' => niktaras_env('GEMINI_API_KEY', $dotenv),
+    // Optional: enables live web search via Google's Custom Search JSON API
+    // (free, no billing required, 100 queries/day). Leave blank to disable.
+    'GOOGLE_CSE_API_KEY' => niktaras_env('GOOGLE_CSE_API_KEY', $dotenv),
+    'GOOGLE_CSE_ID' => niktaras_env('GOOGLE_CSE_ID', $dotenv),
 ];
