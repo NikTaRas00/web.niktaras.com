@@ -1,5 +1,28 @@
 <?php
-// PRIVATE REPO ONLY. Never make this repo public.
+// Secrets are NOT stored here. They live in api/.env (gitignored, never committed)
+// or in real server environment variables, which take precedence.
+// See api/.env.example for the expected format.
+
+function niktaras_load_dotenv(string $path): array
+{
+    if (!is_readable($path)) {
+        return [];
+    }
+
+    $vars = [];
+    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $vars[trim($key)] = trim($value, " \t\n\r\0\x0B\"'");
+    }
+    return $vars;
+}
+
+$dotenv = niktaras_load_dotenv(__DIR__ . '/.env');
+
 return [
-    'GEMINI_API_KEY' => 'AQ.Ab8RN6Iu4zxKriBNDfpwxfLiuY1cvHsIp-9WIn3aSH0Jw82ZPw',
+    'GEMINI_API_KEY' => getenv('GEMINI_API_KEY') ?: ($dotenv['GEMINI_API_KEY'] ?? ''),
 ];
