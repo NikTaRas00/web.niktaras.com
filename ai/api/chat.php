@@ -74,21 +74,24 @@ function call_gemini(array $body, string $apiKey): array
     return $decoded;
 }
 
-// Free, no-billing web search via Google's Custom Search JSON API
-// (100 free queries/day). Returns [] on any failure or missing config.
-function web_search(string $query, string $apiKey, string $searchEngineId): array
+// Free, no-billing web search via Tavily (1,000 free searches/month,
+// no credit card required). Returns [] on any failure or missing config.
+function web_search(string $query, string $apiKey): array
 {
-    $url = 'https://www.googleapis.com/customsearch/v1?' . http_build_query([
-        'key' => $apiKey,
-        'cx' => $searchEngineId,
-        'q' => $query,
-        'num' => SEARCH_RESULT_COUNT,
-    ]);
-
-    $ch = curl_init($url);
+    $ch = curl_init('https://api.tavily.com/search');
     curl_setopt_array($ch, [
+        CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 15,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey,
+        ],
+        CURLOPT_POSTFIELDS => json_encode([
+            'query' => $query,
+            'max_results' => SEARCH_RESULT_COUNT,
+            'search_depth' => 'basic',
+        ], JSON_UNESCAPED_UNICODE),
     ]);
     $response = curl_exec($ch);
     curl_close($ch);
@@ -99,15 +102,15 @@ function web_search(string $query, string $apiKey, string $searchEngineId): arra
 
     $decoded = json_decode($response, true);
     $results = [];
-    foreach ($decoded['items'] ?? [] as $item) {
-        $link = $item['link'] ?? '';
+    foreach ($decoded['results'] ?? [] as $item) {
+        $link = $item['url'] ?? '';
         if ($link === '') {
             continue;
         }
         $results[] = [
             'title' => $item['title'] ?? $link,
             'link' => $link,
-            'snippet' => $item['snippet'] ?? '',
+            'snippet' => $item['content'] ?? '',
         ];
     }
     return $results;
@@ -133,9 +136,8 @@ if ($apiKey === '') {
     fail(500, 'No API key on the server. Check api/config.php.');
 }
 
-$cseApiKey = trim((string)($config['GOOGLE_CSE_API_KEY'] ?? ''));
-$cseId = trim((string)($config['GOOGLE_CSE_ID'] ?? ''));
-$searchEnabled = $cseApiKey !== '' && $cseId !== '';
+$tavilyApiKey = trim((string)($config['TAVILY_API_KEY'] ?? ''));
+$searchEnabled = $tavilyApiKey !== '';
 
 $messages = array_slice($payload['messages'], -MAX_MESSAGES);
 $contents = [];
@@ -200,7 +202,7 @@ foreach ($parts as $part) {
 
 if ($functionCallPart !== null && $searchEnabled) {
     $query = trim((string)($functionCallPart['functionCall']['args']['query'] ?? ''));
-    $results = $query !== '' ? web_search($query, $cseApiKey, $cseId) : [];
+    $results = $query !== '' ? web_search($query, $tavilyApiKey) : [];
 
     $seenUris = [];
     foreach ($results as $r) {

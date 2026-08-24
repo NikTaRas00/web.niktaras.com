@@ -34,8 +34,7 @@ $dotenv = niktaras_load_dotenv(__DIR__ . '/.env');
 
 return [
     'GEMINI_API_KEY' => niktaras_env('GEMINI_API_KEY', $dotenv),
-    // Optional: enables live web search via Google's Custom Search JSON API
-    // (free, no billing required, 100 queries/day). Leave blank to disable.
-    'GOOGLE_CSE_API_KEY' => niktaras_env('GOOGLE_CSE_API_KEY', $dotenv),
-    'GOOGLE_CSE_ID' => niktaras_env('GOOGLE_CSE_ID', $dotenv),
+    // Optional: enables live web search via Tavily (free, no billing
+    // required, 1,000 searches/month). Leave blank to disable.
+    'TAVILY_API_KEY' => niktaras_env('TAVILY_API_KEY', $dotenv),
 ];
