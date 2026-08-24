@@ -12,7 +12,7 @@ function niktaras_load_dotenv(string $path): array
     $vars = [];
     foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $line = trim($line);
-        if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) {
+        if ($line === '' || $line[0] === '#' || strpos($line, '=') === false) {
             continue;
         }
         [$key, $value] = explode('=', $line, 2);
