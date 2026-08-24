@@ -18,6 +18,16 @@ function load_api_key(): ?string
     return $key !== '' ? trim($key) : null;
 }
 
+function load_system_prompt(): string
+{
+    $path = __DIR__ . '/SYSTEM_PROMPT.txt';
+    if (!is_readable($path)) {
+        return '';
+    }
+    $text = file_get_contents($path);
+    return $text === false ? '' : trim($text);
+}
+
 function fail(int $status, string $message): never
 {
     http_response_code($status);
