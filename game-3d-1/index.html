@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Drift Loop — a three.js racer</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a1420; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  canvas { display: block; touch-action: none; }
+
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; padding: 14px 18px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none; color: #eaf2ff; text-shadow: 0 1px 4px rgba(0,0,0,.6);
+    font-variant-numeric: tabular-nums;
+  }
+  #hud .block { background: rgba(10,20,32,.45); backdrop-filter: blur(4px); border-radius: 10px; padding: 8px 14px; }
+  #hud .label { font-size: 11px; opacity: .7; letter-spacing: .06em; text-transform: uppercase; }
+  #hud .value { font-size: 20px; font-weight: 600; }
+  #speedWrap { text-align: right; }
+  #offtrack { color: #ff8a6a; font-size: 12px; margin-top: 4px; opacity: 0; transition: opacity .2s; }
+  #offtrack.show { opacity: 1; }
+
+  #countdown {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 22vw; font-weight: 800; color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,.6);
+    pointer-events: none; opacity: 0; transition: opacity .15s;
+  }
+  #countdown.show { opacity: 1; }
+
+  #startScreen, #loadingScreen {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #16273c 0%, #060d16 100%);
+  }
+  #startScreen { z-index: 10; }
+  #loadingScreen { z-index: 20; flex-direction: column; gap: 16px; }
+  #loadingScreen.hidden, #startScreen.hidden { display: none; }
+  .spinner {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid rgba(234,242,255,.18); border-top-color: #6fe3c8;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loadingScreen p { color: #9fb3c8; font-size: 13px; letter-spacing: .03em; }
+
+  #startCard { max-width: 460px; padding: 34px 32px; text-align: center; color: #eaf2ff; }
+  #startCard h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: .01em; }
+  #startCard p.sub { margin: 0 0 22px; color: #9fb3c8; font-size: 14px; }
+  #startCard .keys { display: flex; justify-content: center; gap: 18px; margin-bottom: 26px; font-size: 13px; color: #cfe0f2; flex-wrap: wrap; }
+  #startCard .keys div { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  kbd { display: inline-block; min-width: 22px; padding: 4px 7px; background: #1c2c40; border: 1px solid #34506e; border-radius: 6px; font-size: 12px; }
+  #startBtn {
+    font-size: 16px; font-weight: 600; color: #06131f; background: linear-gradient(180deg,#6fe3c8,#38b897);
+    border: none; border-radius: 10px; padding: 13px 34px; cursor: pointer; box-shadow: 0 6px 20px rgba(56,184,151,.35);
+  }
+  #startBtn:active { transform: translateY(1px); }
+
+  #restartBtn {
+    position: fixed; bottom: 16px; left: 18px; pointer-events: auto;
+    background: rgba(10,20,32,.5); color: #eaf2ff; border: 1px solid rgba(255,255,255,.15);
+    border-radius: 8px; padding: 8px 14px; font-size: 12px; cursor: pointer; backdrop-filter: blur(4px);
+  }
+
+  #touchControls { position: fixed; inset: 0; pointer-events: none; display: none; }
+  #touchControls.active { display: block; }
+  .tbtn {
+    position: absolute; width: 78px; height: 78px; border-radius: 50%;
+    background: rgba(234,242,255,.12); border: 1px solid rgba(234,242,255,.25);
+    color: #eaf2ff; font-size: 26px; display: flex; align-items: center; justify-content: center;
+    pointer-events: auto; user-select: none; -webkit-user-select: none;
+  }
+  .tbtn:active { background: rgba(234,242,255,.28); }
+  #btnLeft  { left: 24px;  bottom: 34px; }
+  #btnRight { left: 116px; bottom: 34px; }
+  #btnBrake { right: 24px; bottom: 34px; }
+  #btnGas   { right: 116px; bottom: 34px; }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="block">
+    <div class="label">Lap</div>
+    <div class="value" id="lapVal">1 / ∞</div>
+    <div class="label" style="margin-top:6px;">Time</div>
+    <div class="value" id="timeVal">00:00.0</div>
+    <div class="label" style="margin-top:6px;">Best lap</div>
+    <div class="value" id="bestVal">--:--.-</div>
+  </div>
+  <div class="block" id="speedWrap">
+    <div class="label">Speed</div>
+    <div class="value" id="speedVal">0 km/h</div>
+    <div id="offtrack">OFF TRACK</div>
+  </div>
+</div>
+
+<button id="restartBtn">↺ Restart race</button>
+
+<div id="countdown"></div>
+
+<div id="touchControls">
+  <div class="tbtn" id="btnLeft">◀</div>
+  <div class="tbtn" id="btnRight">▶</div>
+  <div class="tbtn" id="btnGas">▲</div>
+  <div class="tbtn" id="btnBrake">▼</div>
+</div>
+
+<div id="startScreen">
+  <div id="startCard">
+    <h1>Drift Loop</h1>
+    <p class="sub">A three.js hill-country circuit. Mind the traffic, stay on the tarmac, chase your best lap.</p>
+    <div class="keys">
+      <div><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>drive</div>
+      <div><span><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></span>or arrows</div>
+      <div><span><kbd>R</kbd></span>unstick car</div>
+    </div>
+    <button id="startBtn">Start engine</button>
+  </div>
+</div>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <p>Carving terrain and laying tarmac&hellip;</p>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
