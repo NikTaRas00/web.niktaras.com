@@ -44,9 +44,22 @@ stored server-side, there is no session, and Clear wipes it.
 
 ## Rules that matter
 
-- **Secrets never enter the repo.** `api/.env` is gitignored; env vars set on the
-  host take precedence over it. If you add a server file holding anything secret,
-  add it to the `FilesMatch` deny block in `.htaccess` in the same change.
+- **NEVER commit, stage, or push. No exceptions.** Do not run `git add`,
+  `git commit`, `git push`, `git restore`, `git reset`, or anything else that
+  writes to the index, to history, or to the remote — not even when a change is
+  finished, obviously correct, or explicitly "ready". Read-only git (`status`,
+  `diff`, `log`, `show`) is fine. Edit the working tree, say what changed, and
+  leave every git write to the user. If you think something should be committed,
+  say so and stop there.
+- **The GitHub repo is PUBLIC** (since 2026-08-25). Anything committed here is
+  world-readable and permanent — history included. Treat every commit accordingly.
+- **Secrets never enter the repo.** `api/.env` lives only on cPanel; it is
+  gitignored, and env vars set on the host take precedence over it. If you add a
+  server file holding anything secret, add it to the `FilesMatch` deny block in
+  `.htaccess` in the same change.
+  A Gemini key was committed once in `ai/api/config.php` (removed in `c34f4ea`,
+  still visible at `cad47eb`). That key has been deleted upstream and is dead —
+  no action needed, but don't repeat the pattern.
 - **Never say Gemini.** The product is "NKT-1 by NikTaRas AI". That's enforced by
   `SYSTEM_PROMPT.txt` and by the UI labels — don't leak the upstream model name
   into user-visible strings or error text.
