@@ -1,9 +1,10 @@
 import * as THREE from 'three';
+import { VISUAL } from './config.js';
 import { setupEnvironment } from './environment.js';
 import { setupPostFX } from './postfx.js';
-import { buildTerrainMesh } from './terrain.js';
+import { buildGround } from './ground.js';
 import { buildTrackMeshes } from './trackMesh.js';
-import { buildScenery } from './scenery.js';
+import { buildCity } from './city.js';
 import { createPlayer } from './player.js';
 import { createTraffic } from './traffic.js';
 import { initInput } from './input.js';
@@ -11,7 +12,7 @@ import * as audio from './audio.js';
 import * as hud from './hud.js';
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 1600);
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, VISUAL.cameraFar);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -33,16 +34,16 @@ initInput();
 hud.showLoading();
 
 // yield one frame so the loading screen actually paints before the heavy synchronous
-// terrain/track/scenery generation blocks the main thread
+// ground/track/city generation blocks the main thread
 requestAnimationFrame(() => requestAnimationFrame(buildWorld));
 
 let player, traffic;
 const bestKey = 'driftloop_best_lap';
 
 function buildWorld() {
-  scene.add(buildTerrainMesh());
+  scene.add(buildGround());
   buildTrackMeshes(scene);
-  buildScenery(scene);
+  buildCity(scene);
 
   player = createPlayer(scene);
   traffic = createTraffic(scene);
@@ -53,7 +54,7 @@ function buildWorld() {
   hud.initHUD({
     onStart: () => { audio.startAudio(); hud.hideStartScreen(); beginRace(); },
     onRestart: (mode) => {
-      if (mode === 'soft') player.resetToStart();
+      if (mode === 'soft') player.respawn();
       else beginRace();
     },
   });
@@ -106,6 +107,7 @@ function frame(now) {
     offTrack: player.state.offTrack,
     throttle: !!result.throttle,
     turning: !!result.turnDir,
+    scraping: player.state.scraping,
   });
 
   if (player.state.running) {
@@ -114,6 +116,7 @@ function frame(now) {
       lapElapsedMs: now - player.state.lapStart,
       speedKmh: Math.round(Math.abs(player.state.speed) * 3.6),
       offTrack: player.state.offTrack,
+      scraping: player.state.scraping,
     });
   }
 

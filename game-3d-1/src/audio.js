@@ -67,7 +67,7 @@ export function playImpactThump() {
   osc.stop(now + 0.24);
 }
 
-export function updateAudio({ running, speed, offTrack, throttle, turning }) {
+export function updateAudio({ running, speed, offTrack, throttle, turning, scraping }) {
   if (!audioCtx) return;
   const now = audioCtx.currentTime;
   const speedRatio = Math.min(1, Math.abs(speed) / CAR_PHYSICS.maxSpeed);
@@ -88,6 +88,8 @@ export function updateAudio({ running, speed, offTrack, throttle, turning }) {
   engineGain.gain.setTargetAtTime(targetGain, now, 0.1);
 
   const sliding = running && ((offTrack && Math.abs(speed) > 3) || (turning && Math.abs(speed) > CAR_PHYSICS.maxSpeed * 0.55));
-  const squealTarget = sliding ? 0.09 : 0;
+  // scraping the Armco is harsher and brighter than a tyre losing grip
+  squealFilter.frequency.setTargetAtTime(scraping ? 3200 : 1900, now, 0.04);
+  const squealTarget = scraping ? 0.16 : sliding ? 0.09 : 0;
   squealGain.gain.setTargetAtTime(squealTarget, now, squealTarget > 0 ? 0.03 : 0.15);
 }

@@ -43,6 +43,8 @@ export function buildCar({ color = 0xe8432f, kind = 'sedan' } = {}) {
     : [[0.95, 0.42, 1.25], [-0.95, 0.42, 1.25], [0.95, 0.42, -1.25], [-0.95, 0.42, -1.25]];
   const wheels = wheelPositions.map(([x, y, z]) => {
     const w = new THREE.Group();
+    // steer first, then spin about the (already steered) axle
+    w.rotation.order = 'YXZ';
     const tire = new THREE.Mesh(wheelGeo, wheelMat);
     tire.rotation.z = Math.PI / 2;
     tire.castShadow = true;

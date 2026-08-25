@@ -56,9 +56,10 @@ export function runCountdown(cb) {
 
 export function setBestDisplay(best) { bestVal.textContent = fmtTime(best); }
 
-export function updateHUD({ lap, lapElapsedMs, speedKmh, offTrack }) {
+export function updateHUD({ lap, lapElapsedMs, speedKmh, offTrack, scraping }) {
   lapVal.textContent = `${lap} / ∞`;
   timeVal.textContent = fmtTime(lapElapsedMs);
   speedVal.textContent = `${speedKmh} km/h`;
-  offtrackEl.classList.toggle('show', offTrack);
+  if (scraping || offTrack) offtrackEl.textContent = scraping ? 'BARRIER CONTACT' : 'ON THE PAVEMENT';
+  offtrackEl.classList.toggle('show', scraping || offTrack);
 }

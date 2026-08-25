@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(py -m http.server:*)",
+      "Read(//C/Users/User/Documents/git/web.niktaras.com/ai/**)"
+    ],
+    "deny": [
+      "Read(./api/.env)",
+      "Bash(cat ./api/.env)",
+      "Bash(git add ./api/.env)"
+    ]
+  }
+}

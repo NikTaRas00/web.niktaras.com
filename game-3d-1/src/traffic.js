@@ -1,18 +1,11 @@
-// AI traffic: cars that drive the track spline in fixed lanes with simple adaptive-cruise
-// following (slow down for whoever's ahead in the same lane) and a soft arcade bump against the
-// player. Traffic never leaves the road, so — unlike the player — it only needs the track spline,
-// not a terrain query, to know its position and grade.
+// City traffic: cars working their way around the same streets in fixed lanes with simple
+// adaptive-cruise following (slow down for whoever's ahead in the same lane) and a soft arcade
+// bump against the player. Traffic never leaves the road, so — unlike the player — it only needs
+// the track spline, not a surface query, to know its position and grade.
 
 import { TRAFFIC } from './config.js';
-import { centerAt, tangentAt, elevationAt, TOTAL_LEN } from './track.js';
+import { poseAt, elevationAt, gradeAt, TOTAL_LEN } from './track.js';
 import { buildCar, CAR_COLORS } from './car.js';
-
-function gradeAt(t) {
-  const eps = 0.0006;
-  const y1 = elevationAt(t - eps), y2 = elevationAt(t + eps);
-  const ds = 2 * eps * TOTAL_LEN;
-  return Math.atan2(y2 - y1, ds);
-}
 
 export function createTraffic(scene) {
   const cars = [];
@@ -28,6 +21,7 @@ export function createTraffic(scene) {
       mesh, lane,
       t: i / TRAFFIC.count,
       baseSpeed, speed: baseSpeed,
+      x: 0, z: 0,
       collisionCooldown: 0,
     });
   }
@@ -37,8 +31,7 @@ export function createTraffic(scene) {
       let aheadGap = Infinity;
       for (const other of cars) {
         if (other === car || other.lane !== car.lane) continue;
-        const gapT = ((other.t - car.t) % 1 + 1) % 1;
-        const gapDist = gapT * TOTAL_LEN;
+        const gapDist = ((((other.t - car.t) % 1) + 1) % 1) * TOTAL_LEN;
         if (gapDist < aheadGap) aheadGap = gapDist;
       }
       let target = car.baseSpeed;
@@ -50,16 +43,12 @@ export function createTraffic(scene) {
       car.t = (car.t + (car.speed / TOTAL_LEN) * delta) % 1;
       if (car.t < 0) car.t += 1;
 
-      const c = centerAt(car.t);
-      const tan = tangentAt(car.t);
-      const nx = -tan.z, nz = tan.x;
-      const x = c.x + nx * car.lane, z = c.z + nz * car.lane;
+      const p = poseAt(car.t);
+      const x = p.x + -p.tz * car.lane, z = p.z + p.tx * car.lane;
       const y = elevationAt(car.t) + 0.03;
-      const heading = Math.atan2(tan.x, tan.z);
-      const pitch = gradeAt(car.t);
 
       car.mesh.position.set(x, y, z);
-      car.mesh.rotation.set(pitch, heading, 0);
+      car.mesh.rotation.set(-Math.atan(gradeAt(car.t)), Math.atan2(p.tx, p.tz), 0);
       for (const w of car.mesh.userData.wheels) w.rotation.x -= car.speed * delta * 1.6;
       car.x = x; car.z = z;
 
@@ -73,7 +62,7 @@ export function createTraffic(scene) {
       const dx = playerState.x - car.x, dz = playerState.z - car.z;
       const dist = Math.hypot(dx, dz);
       if (dist < TRAFFIC.collisionDist && dist > 0.001) {
-        const push = (TRAFFIC.collisionDist - dist);
+        const push = TRAFFIC.collisionDist - dist;
         playerState.x += (dx / dist) * push;
         playerState.z += (dz / dist) * push;
         playerState.speed *= 0.55;

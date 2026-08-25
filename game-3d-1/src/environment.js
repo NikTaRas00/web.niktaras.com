@@ -36,10 +36,10 @@ export function setupEnvironment(scene, renderer) {
   scene.background = new THREE.Color(0x9fc3dd);
   scene.fog = new THREE.Fog(0x9fc3dd, VISUAL.fogNear, VISUAL.fogFar);
 
-  scene.add(new THREE.HemisphereLight(0xdcefff, 0x4a5a34, 0.55));
+  // bounce off pavement rather than off grass, so nothing picks up a green cast from below
+  scene.add(new THREE.HemisphereLight(0xdcefff, 0x4b4d52, 0.5));
 
   const sunLight = new THREE.DirectionalLight(0xfff2d9, 1.35);
-  sunLight.position.copy(sun).multiplyScalar(300).add(new THREE.Vector3(0, VISUAL.sunOffset.y, 0));
   sunLight.castShadow = true;
   sunLight.shadow.mapSize.set(2048, 2048);
   sunLight.shadow.camera.left = -VISUAL.shadowFrustum;
@@ -47,17 +47,19 @@ export function setupEnvironment(scene, renderer) {
   sunLight.shadow.camera.top = VISUAL.shadowFrustum;
   sunLight.shadow.camera.bottom = -VISUAL.shadowFrustum;
   sunLight.shadow.camera.near = 1;
-  sunLight.shadow.camera.far = 500;
-  sunLight.shadow.bias = -0.0012;
+  sunLight.shadow.camera.far = 1400;
+  sunLight.shadow.bias = -0.0009;
+  sunLight.shadow.normalBias = 0.05;
   scene.add(sunLight);
   scene.add(sunLight.target);
 
   const sunDir = sun.clone().normalize();
 
-  // the map is far bigger than any single shadow frustum can crisply cover, so instead of
-  // sizing the frustum to the whole track, the light + target re-center on the car every frame.
+  // the city is far bigger than any single shadow frustum can crisply cover, so instead of sizing
+  // the frustum to the whole map, the light + target re-center on the car every frame. It sits
+  // well back so tower blocks stay inside the frustum and throw their shadows down the streets.
   function followTarget(x, y, z) {
-    sunLight.position.set(x + sunDir.x * 220, y + Math.max(80, sunDir.y * 220), z + sunDir.z * 220);
+    sunLight.position.set(x + sunDir.x * 520, y + Math.max(240, sunDir.y * 520), z + sunDir.z * 520);
     sunLight.target.position.set(x, y, z);
     sunLight.target.updateMatrixWorld();
   }
