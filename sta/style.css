@@ -9,3 +9,8 @@ body {
     align-items: center;
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
 }
+
+button {
+    width: 30vw;
+    height: 30vh;
+}
